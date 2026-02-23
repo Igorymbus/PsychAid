@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+{% block title %}{% if consultation %}Редактирование консультации{% else %}Регистрация консультации{% endif %}{% endblock %}
+{% block content %}
+<div class="card card-soft app-form-card consultation-form-card">
+    <div class="card-body">
+        <div class="app-form-title">
+            <i class="bi bi-journal-text"></i>
+            <h2 class="h5 mb-0">{% if consultation %}Редактирование консультации{% else %}Регистрация консультации{% endif %}</h2>
+        </div>
+        <div class="app-form-subtitle">
+            Укажите обращение, дату, время начала и окончания, форму консультации. Для прошедших консультаций — краткий результат.
+        </div>
+        {% if linked_request %}
+        <div class="alert alert-info mb-3">
+            <strong>Обращение:</strong>
+            <a href="{% url 'consultations:request_detail' linked_request.pk %}">
+                {{ linked_request.student.full_name }} — {{ linked_request.created_at|date:"d.m.Y" }}
+            </a>
+        </div>
+        {% endif %}
+        <form method="post" novalidate class="consultation-form" id="consultation-form">
+            {% csrf_token %}
+            <div class="row g-3">
+                {% for field in form %}
+                    {% if field.is_hidden %}
+                        {{ field }}
+                    {% else %}
+                    <div class="col-12{% if field.name == 'result' or field.name == 'students' %} col-md-12{% else %} col-md-6{% endif %}{% if field.name == 'students' %} consultation-form-students-col{% endif %}{% if field.name == 'result' %} consultation-result-field{% endif %}"{% if field.name == 'result' %} id="result-field-wrap"{% endif %}>
+                        <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                        {% if field.name == 'students' %}
+                        <input
+                            type="text"
+                            class="form-control mb-2"
+                            id="students-search"
+                            placeholder="Поиск по ФИО учащегося"
+                            autocomplete="off"
+                        >
+                        {% endif %}
+                        <div class="consultation-form-field-wrap">{{ field }}</div>
+                        {% if field.help_text %}
+                            <div class="form-text">{{ field.help_text }}</div>
+                        {% endif %}
+                        {% for error in field.errors %}
+                            <div class="invalid-feedback d-block">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+            <div class="app-form-footer">
+                {% if request.GET.request %}
+                <a href="{% url 'consultations:request_detail' request.GET.request %}" class="btn btn-outline-secondary">Отмена</a>
+                {% else %}
+                <a href="{% url 'consultations:consultation_list' %}" class="btn btn-outline-secondary">Отмена</a>
+                {% endif %}
+                <button type="submit" class="btn btn-primary">{% if consultation %}Сохранить{% else %}Зарегистрировать консультацию{% endif %}</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% if not consultation %}
+<script>
+(function() {
+    const wrap = document.getElementById('result-field-wrap');
+    const dateInput = document.getElementById('id_date');
+    if (!wrap || !dateInput) return;
+    function todayStr() {
+        const d = new Date();
+        return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    }
+    function toggleResult() {
+        const val = dateInput.value;
+        if (!val) { wrap.style.display = 'none'; return; }
+        wrap.style.display = val < todayStr() ? '' : 'none';
+    }
+    dateInput.addEventListener('change', toggleResult);
+    toggleResult();
+})();
+</script>
+{% endif %}
+<script>
+(function () {
+    const searchInput = document.getElementById('students-search');
+    const studentsSelect = document.getElementById('id_students');
+    if (!searchInput || !studentsSelect) return;
+
+    const options = Array.from(studentsSelect.options).map((opt) => ({
+        value: opt.value,
+        text: opt.text,
+        selected: opt.selected,
+    }));
+
+    function renderOptions(query) {
+        const normalized = (query || '').trim().toLowerCase();
+        const selectedValues = new Set(
+            Array.from(studentsSelect.selectedOptions).map((opt) => opt.value)
+        );
+
+        studentsSelect.innerHTML = '';
+        options.forEach((item) => {
+            if (normalized && !item.text.toLowerCase().includes(normalized)) return;
+            const opt = document.createElement('option');
+            opt.value = item.value;
+            opt.text = item.text;
+            opt.selected = selectedValues.has(item.value) || item.selected;
+            studentsSelect.appendChild(opt);
+        });
+    }
+
+    searchInput.addEventListener('input', function () {
+        renderOptions(searchInput.value);
+    });
+})();
+</script>
+{% endblock %}

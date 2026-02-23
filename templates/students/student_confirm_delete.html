@@ -1,0 +1,11 @@
+﻿{% extends 'base.html' %}
+{% block title %}Удаление учащегося{% endblock %}
+{% block content %}
+<h2>Удаление учащегося</h2>
+<p>Вы уверены, что хотите удалить <strong>{{ student.full_name }}</strong>? Будут также удалены все обращения и консультации.</p>
+<form method="post">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-danger">Удалить</button>
+    <a href="{% url 'students:student_list' %}" class="btn btn-outline-secondary">Отмена</a>
+</form>
+{% endblock %}

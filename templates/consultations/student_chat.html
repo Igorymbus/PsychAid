@@ -1,0 +1,46 @@
+﻿{% extends 'base.html' %}
+{% load tz %}
+{% block title %}Чат с психологом{% endblock %}
+{% block content %}
+<h2><i class="bi bi-chat-square-text"></i> Чат с психологом</h2>
+
+{% if not has_profile %}
+<div class="alert alert-warning">Ваш аккаунт не привязан к карточке учащегося. Обратитесь к администратору.</div>
+{% else %}
+{% if chat %}
+<p class="text-muted">
+    Ваш психолог: <strong>{{ chat.psychologist.username }}</strong>
+</p>
+{% else %}
+<div class="alert alert-info">
+    Личный чат будет создан автоматически при отправке первого сообщения.
+</div>
+{% endif %}
+
+<div class="chat-thread mb-3">
+    {% for m in messages_list %}
+    <div class="chat-message {% if m.author_id == request.user.id %}chat-message--me{% else %}chat-message--other{% endif %}">
+        <div class="chat-message__meta">
+            {% if m.author_id == request.user.id %}Вы{% else %}Психолог{% endif %}
+            • {{ m.created_at|timezone:"Europe/Moscow"|date:"d.m.Y H:i" }}
+        </div>
+        <div class="chat-message__text">{{ m.text|linebreaksbr }}</div>
+    </div>
+    {% empty %}
+    <p class="text-muted mb-0">Сообщений пока нет.</p>
+    {% endfor %}
+</div>
+
+<form method="post" class="card card-soft p-3">
+    {% csrf_token %}
+    <label for="{{ form.text.id_for_label }}" class="form-label">{{ form.text.label }}</label>
+    {{ form.text }}
+    {% for error in form.text.errors %}
+    <div class="invalid-feedback d-block">{{ error }}</div>
+    {% endfor %}
+    <div class="mt-2 d-flex justify-content-end">
+        <button type="submit" class="btn btn-primary"><i class="bi bi-send"></i> Отправить</button>
+    </div>
+</form>
+{% endif %}
+{% endblock %}

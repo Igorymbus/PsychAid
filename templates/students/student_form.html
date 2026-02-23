@@ -1,0 +1,36 @@
+﻿{% extends 'base.html' %}
+{% block title %}{% if object %}Редактирование{% else %}Новый учащийся{% endif %}{% endblock %}
+{% block content %}
+<div class="card card-soft app-form-card">
+    <div class="card-body">
+        <div class="app-form-title">
+            <i class="bi bi-person-badge"></i>
+            <h2 class="h5 mb-0">{% if object %}Редактирование учащегося{% else %}Новый учащийся{% endif %}</h2>
+        </div>
+        <div class="app-form-subtitle">
+            Заполните основные данные ученика и его класс.
+        </div>
+        <form method="post" novalidate>
+            {% csrf_token %}
+            <div class="row g-3">
+                {% for field in form %}
+                <div class="col-md-6">
+                    <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.help_text %}
+                        <div class="form-text">{{ field.help_text }}</div>
+                    {% endif %}
+                    {% for error in field.errors %}
+                        <div class="invalid-feedback d-block">{{ error }}</div>
+                    {% endfor %}
+                </div>
+                {% endfor %}
+            </div>
+            <div class="app-form-footer">
+                <a href="{% url 'students:student_list' %}" class="btn btn-outline-secondary">Отмена</a>
+                <button type="submit" class="btn btn-primary">Сохранить</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

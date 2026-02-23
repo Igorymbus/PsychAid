@@ -1,0 +1,24 @@
+﻿{% extends 'base.html' %}
+{% block title %}Мой профиль{% endblock %}
+{% block content %}
+<h2><i class="bi bi-person-vcard"></i> Мой профиль</h2>
+
+{% if not has_profile %}
+<div class="alert alert-warning">
+    Ваш аккаунт не привязан к карточке учащегося. Обратитесь к администратору.
+</div>
+{% else %}
+<dl class="row">
+    <dt class="col-sm-2">ФИО</dt>
+    <dd class="col-sm-10">{{ student.full_name }}</dd>
+    <dt class="col-sm-2">Класс</dt>
+    <dd class="col-sm-10">{{ student.class_name }}</dd>
+    <dt class="col-sm-2">Дата рождения</dt>
+    <dd class="col-sm-10">{{ student.birth_date|date:"d.m.Y" }}</dd>
+</dl>
+<p>
+    <a href="{% url 'consultations:my_request_list' %}" class="btn btn-outline-primary">Мои обращения</a>
+    <a href="{% url 'consultations:student_dashboard' %}" class="btn btn-outline-secondary">В личный кабинет</a>
+</p>
+{% endif %}
+{% endblock %}

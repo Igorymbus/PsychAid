@@ -1,0 +1,61 @@
+﻿{% extends 'base.html' %}
+{% load tz %}
+{% block title %}Обращение {{ request_obj.student }}{% endblock %}
+{% block content %}
+<h2>Обращение: {{ request_obj.student.full_name }}</h2>
+<dl class="row">
+    <dt class="col-sm-2">Дата</dt><dd class="col-sm-10">{{ request_obj.created_at|date:"d.m.Y" }}</dd>
+    <dt class="col-sm-2">Статус</dt>
+    <dd class="col-sm-10">
+        <span class="badge bg-{% if request_obj.status.name == 'new' %}secondary{% elif request_obj.status.name == 'in_progress' %}info{% elif request_obj.status.name == 'cancelled' %}warning{% else %}success{% endif %}">
+            {{ request_obj.status_display }}
+        </span>
+    </dd>
+    <dt class="col-sm-2">Источник</dt><dd class="col-sm-10">{{ request_obj.get_source_display }}</dd>
+</dl>
+
+<h5 class="mt-4">Заметка учащегося</h5>
+{% if request_notes %}
+<ul class="list-group list-group-flush mb-3">
+    {% for n in request_notes %}
+    <li class="list-group-item">
+        <div class="small text-muted mb-1">
+            {{ n.created_at|timezone:"Europe/Moscow"|date:"d.m.Y H:i" }}{% if n.user %} • {{ n.user.username }}{% endif %}
+        </div>
+        <div style="white-space: pre-wrap;">{{ n.text }}</div>
+    </li>
+    {% endfor %}
+</ul>
+{% else %}
+<p class="text-muted">Заметка не добавлена.</p>
+{% endif %}
+
+<h5 class="mt-4">Консультации по обращению</h5>
+<ul class="list-group list-group-flush mb-3">
+    {% for c in request_obj.consultations.all %}
+    <li class="list-group-item d-flex justify-content-between align-items-center">
+        <div>
+            <a href="{% url 'consultations:consultation_detail' c.pk %}">{{ c.date|date:"d.m.Y" }}{% if c.time_display %} {{ c.time_display }}{% else %} —{% endif %} — {{ c.form_display }}</a>
+            <span class="text-muted small ms-2">({{ c.students_display }})</span>
+        </div>
+        <span class="text-muted small">{{ c.result|truncatewords:10|default:"—" }}</span>
+    </li>
+    {% empty %}
+    <li class="list-group-item text-muted">Консультации пока не зарегистрированы.</li>
+    {% endfor %}
+</ul>
+
+<div class="d-flex flex-wrap gap-2">
+    {% if user.role_name == 'psychologist' %}
+    {% if request_obj.status.name == 'new' %}
+    <a href="{% url 'consultations:consultation_create' %}?request={{ request_obj.pk }}" class="btn btn-primary">
+        <i class="bi bi-journal-plus"></i> Зарегистрировать консультацию
+    </a>
+    {% endif %}
+    {% endif %}
+    {% if user.role_name == 'admin' %}
+    <a href="{% url 'consultations:request_delete' request_obj.pk %}" class="btn btn-outline-danger">Удалить</a>
+    {% endif %}
+</div>
+{% endblock %}
+

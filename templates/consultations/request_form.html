@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% block title %}{% if request_obj %}Редактирование обращения{% else %}Новое обращение{% endif %}{% endblock %}
+{% block content %}
+<div class="card card-soft app-form-card">
+    <div class="card-body">
+        <div class="app-form-title">
+            <i class="bi bi-chat-dots"></i>
+            <h2 class="h5 mb-0">{% if request_obj %}Редактирование обращения{% else %}Регистрация обращения{% endif %}</h2>
+        </div>
+        <div class="app-form-subtitle">
+            Выберите учащегося, источник и текущий статус обращения.
+        </div>
+        <form method="post" novalidate>
+            {% csrf_token %}
+            <div class="row g-3">
+                {% for field in form %}
+                <div class="col-md-6">
+                    <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.help_text %}
+                        <div class="form-text">{{ field.help_text }}</div>
+                    {% endif %}
+                    {% for error in field.errors %}
+                        <div class="invalid-feedback d-block">{{ error }}</div>
+                    {% endfor %}
+                </div>
+                {% endfor %}
+            </div>
+            <div class="app-form-footer">
+                <a href="{% url 'consultations:request_list' %}" class="btn btn-outline-secondary">Отмена</a>
+                <button type="submit" class="btn btn-primary">Сохранить</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,388 @@
+﻿{% extends 'base.html' %}
+{% block title %}Отчёты{% endblock %}
+{% block content %}
+<div class="report-page">
+    <section class="report-hero card-soft mb-4">
+        <div class="report-hero__bg"></div>
+        <div class="report-hero__content">
+            <div>
+                <h2 class="report-hero__title"><i class="bi bi-graph-up-arrow"></i> Отчётность</h2>
+                <p class="report-hero__subtitle">Динамика обращений, консультаций и нагрузка специалистов в одном интерактивном дашборде.</p>
+            </div>
+            <form class="report-filters" method="get">
+                <div class="report-filters__grid">
+                    <label class="report-filter-field">
+                        <span>Дата с</span>
+                        <input type="date" name="date_from" value="{{ date_from }}" class="form-control">
+                    </label>
+                    <label class="report-filter-field">
+                        <span>Дата по</span>
+                        <input type="date" name="date_to" value="{{ date_to }}" class="form-control">
+                    </label>
+                </div>
+                <div class="report-filters__actions">
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-funnel"></i> Применить</button>
+                    <a href="{% url 'consultations:report' %}" class="btn btn-outline-secondary">Сбросить</a>
+                </div>
+            </form>
+        </div>
+    </section>
+
+    {% with query_params=request.GET.urlencode %}
+
+    {% if is_psychologist %}
+
+    <section class="report-panel report-panel--workload card-soft mb-4">
+        <div class="report-panel__head">
+            <div>
+                <h3><i class="bi bi-people"></i> Обращения и консультации по учащимся</h3>
+                <p>Сводная нагрузка психолога и распределение по учащимся за выбранный период.</p>
+            </div>
+            <div class="report-panel__actions">
+                <a href="{% url 'consultations:export_students_report_pdf' %}?{{ query_params }}" class="btn btn-outline-danger btn-sm"><i class="bi bi-file-pdf"></i> Учащиеся PDF</a>
+                <a href="{% url 'consultations:export_students_report_excel' %}?{{ query_params }}" class="btn btn-outline-success btn-sm"><i class="bi bi-file-excel"></i> Учащиеся Excel</a>
+                <a href="{% url 'consultations:export_workload_pdf' %}?{{ query_params }}" class="btn btn-outline-danger btn-sm"><i class="bi bi-file-pdf"></i> Нагрузка PDF</a>
+            </div>
+        </div>
+        <div class="report-kpi-grid">
+            <article class="report-kpi-card">
+                <div class="report-kpi-card__icon"><i class="bi bi-chat-dots"></i></div>
+                <div class="report-kpi-card__meta">Обращений</div>
+                <div class="report-kpi-card__value">{{ workload_requests }}</div>
+            </article>
+            <article class="report-kpi-card">
+                <div class="report-kpi-card__icon"><i class="bi bi-journal-check"></i></div>
+                <div class="report-kpi-card__meta">Консультаций</div>
+                <div class="report-kpi-card__value">{{ workload_consultations }}</div>
+            </article>
+            <article class="report-kpi-card">
+                <div class="report-kpi-card__icon"><i class="bi bi-stopwatch"></i></div>
+                <div class="report-kpi-card__meta">Суммарно (мин)</div>
+                <div class="report-kpi-card__value">{{ workload_duration_total }}</div>
+            </article>
+            <article class="report-kpi-card">
+                <div class="report-kpi-card__icon"><i class="bi bi-speedometer2"></i></div>
+                <div class="report-kpi-card__meta">Средняя (мин)</div>
+                <div class="report-kpi-card__value">{{ workload_duration_avg }}</div>
+            </article>
+        </div>
+        <div class="report-panel__head mt-3">
+            <div>
+                <h3><i class="bi bi-person-lines-fill"></i> Распределение по учащимся</h3>
+                <p>Количество обращений, консультаций и последняя активность по каждому ученику.</p>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-modern table-sm align-middle">
+                <thead>
+                    <tr>
+                        <th>№</th>
+                        <th>Учащийся</th>
+                        <th>Класс</th>
+                        <th>Обращений</th>
+                        <th>Консультаций</th>
+                        <th>Последняя консультация</th>
+                        <th>Динамика</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in students_report_data %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td><a href="{% url 'students:student_detail' row.student.pk %}">{{ row.student.full_name }}</a></td>
+                        <td>{{ row.student.class_name }}</td>
+                        <td>{{ row.request_count }}</td>
+                        <td>{{ row.consultation_count }}</td>
+                        <td>{% if row.last_consultation_date %}{{ row.last_consultation_date|date:"d.m.Y" }}{% else %}—{% endif %}</td>
+                        <td>
+                            <a href="{% url 'consultations:student_dynamics' row.student.pk %}?{{ query_params }}" class="btn btn-outline-primary btn-sm">
+                                <i class="bi bi-activity"></i> Открыть
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="7" class="text-muted">Нет данных за выбранный период.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="report-panel card-soft mb-4">
+        <div class="report-panel__head">
+            <div>
+                <h3><i class="bi bi-bar-chart-line"></i> Динамика обращений</h3>
+                <p>Сравнение новых, активных, завершённых и отменённых обращений по месяцам.</p>
+            </div>
+            <div class="report-panel__actions">
+                <a href="{% url 'consultations:export_dynamics_pdf' %}?{{ query_params }}" class="btn btn-outline-danger btn-sm"><i class="bi bi-file-pdf"></i> PDF</a>
+                <a href="{% url 'consultations:export_dynamics_excel' %}?{{ query_params }}" class="btn btn-outline-success btn-sm"><i class="bi bi-file-excel"></i> Excel</a>
+            </div>
+        </div>
+
+        {% if request_dynamics %}
+        <div class="report-chart-toolbar">
+            <div class="btn-group btn-group-sm" role="group" aria-label="Тип графика обращений">
+                <button type="button" class="btn btn-outline-primary active" id="reqChartBarBtn">Bar</button>
+                <button type="button" class="btn btn-outline-primary" id="reqChartLineBtn">Line</button>
+            </div>
+            <label class="form-check form-switch m-0">
+                <input class="form-check-input" type="checkbox" id="reqStackToggle" checked>
+                <span class="form-check-label">Stacked</span>
+            </label>
+        </div>
+        <div class="report-chart-grid">
+            <div class="report-chart-wrap"><canvas id="dynamicsChartRequests"></canvas></div>
+            <div class="report-chart-wrap report-chart-wrap--small"><canvas id="requestsShareChart"></canvas></div>
+        </div>
+        {% else %}
+        <p class="text-muted mb-0">Нет данных за выбранный период.</p>
+        {% endif %}
+    </section>
+
+    <section class="report-panel card-soft mb-4">
+        <div class="report-panel__head">
+            <div>
+                <h3><i class="bi bi-calendar2-check"></i> Динамика консультаций</h3>
+                <p>Соотношение завершённых и отменённых консультаций по месяцам.</p>
+            </div>
+        </div>
+
+        {% if consultation_dynamics %}
+        <div class="report-chart-toolbar">
+            <div class="btn-group btn-group-sm" role="group" aria-label="Тип графика консультаций">
+                <button type="button" class="btn btn-outline-primary active" id="consChartBarBtn">Bar</button>
+                <button type="button" class="btn btn-outline-primary" id="consChartLineBtn">Line</button>
+            </div>
+        </div>
+        <div class="report-chart-wrap"><canvas id="dynamicsChartConsultations"></canvas></div>
+        {% else %}
+        <p class="text-muted mb-0">Нет данных за выбранный период.</p>
+        {% endif %}
+    </section>
+
+    {% endif %}
+
+    {% if is_admin %}
+    <section class="report-panel card-soft mb-4">
+        <div class="report-panel__head">
+            <div>
+                <h3><i class="bi bi-person-lines-fill"></i> Статистика обращений к психологам</h3>
+                <p>Распределение обращений по специалистам.</p>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-modern table-sm align-middle">
+                <thead><tr><th>Психолог</th><th>Количество обращений</th></tr></thead>
+                <tbody>
+                    {% for r in request_by_psychologist %}
+                    <tr><td>{{ r.name }}</td><td>{{ r.cnt }}</td></tr>
+                    {% empty %}
+                    <tr><td colspan="2" class="text-muted">Нет данных.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+
+
+    <section class="report-panel card-soft mb-4">
+        <div class="report-panel__head">
+            <div>
+                <h3><i class="bi bi-pie-chart"></i> Статусы обращений</h3>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-modern table-sm align-middle">
+                <thead><tr><th>Статус</th><th>Количество</th></tr></thead>
+                <tbody>
+                    {% for r in request_by_status %}
+                    <tr><td>{{ r.status_display }}</td><td>{{ r.cnt }}</td></tr>
+                    {% empty %}
+                    <tr><td colspan="2" class="text-muted">Нет данных.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="report-panel card-soft mb-4">
+        <div class="report-panel__head">
+            <div>
+                <h3><i class="bi bi-download"></i> Выгрузка консультаций</h3>
+                <p>Детализация консультаций за период (до 500 строк в интерфейсе).</p>
+            </div>
+            <div class="report-panel__actions">
+                <a href="{% url 'consultations:export_consultations_pdf' %}?{{ query_params }}" class="btn btn-outline-danger btn-sm"><i class="bi bi-file-pdf"></i> PDF</a>
+                <a href="{% url 'consultations:export_consultations_excel' %}?{{ query_params }}" class="btn btn-outline-success btn-sm"><i class="bi bi-file-excel"></i> Excel</a>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-modern table-sm align-middle">
+                <thead><tr><th>Дата</th><th>Время</th><th>Учащийся</th><th>Форма</th><th>Психолог</th></tr></thead>
+                <tbody>
+                    {% for c in consultations_in_report %}
+                    <tr>
+                        <td>{{ c.date }}</td>
+                        <td>{% if c.time_display %}{{ c.time_display }}{% else %}—{% endif %}</td>
+                        <td>{{ c.students_display }}</td>
+                        <td>{{ c.form_display }}</td>
+                        <td>{% if c.request_id and c.request.psychologist %}{{ c.request.psychologist.username }}{% else %}—{% endif %}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="5" class="text-muted">Нет данных.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+    {% endif %}
+
+    {% if request_dynamics or consultation_dynamics %}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const reqData = {{ request_dynamics_chart_json|default:'[]'|safe }};
+        const consData = {{ consultation_dynamics_chart_json|default:'[]'|safe }};
+
+        const commonOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: { position: 'bottom', labels: { usePointStyle: true, pointStyle: 'rectRounded' } },
+                tooltip: {
+                    backgroundColor: 'rgba(15, 23, 42, 0.92)',
+                    titleColor: '#fff',
+                    bodyColor: '#e2e8f0',
+                    borderColor: 'rgba(148, 163, 184, 0.25)',
+                    borderWidth: 1
+                }
+            },
+            scales: {
+                x: { grid: { display: false }, ticks: { color: '#64748b' } },
+                y: { beginAtZero: true, ticks: { precision: 0, color: '#64748b' }, grid: { color: 'rgba(148,163,184,.18)' } }
+            }
+        };
+
+        let reqChart = null;
+        let reqShareChart = null;
+        let consChart = null;
+        let reqChartType = 'bar';
+        let consChartType = 'bar';
+
+        function reqDatasets() {
+            return [
+                { label: 'Новые', data: reqData.map(d => d.req_new), borderColor: '#64748b', backgroundColor: 'rgba(100,116,139,.75)', borderWidth: 2, tension: .35, fill: false },
+                { label: 'В работе', data: reqData.map(d => d.req_in_progress), borderColor: '#2563eb', backgroundColor: 'rgba(37,99,235,.72)', borderWidth: 2, tension: .35, fill: false },
+                { label: 'Завершённые', data: reqData.map(d => d.req_completed), borderColor: '#16a34a', backgroundColor: 'rgba(22,163,74,.72)', borderWidth: 2, tension: .35, fill: false },
+                { label: 'Отменённые', data: reqData.map(d => d.req_cancelled), borderColor: '#d97706', backgroundColor: 'rgba(217,119,6,.72)', borderWidth: 2, tension: .35, fill: false }
+            ];
+        }
+
+        function renderReqChart() {
+            const el = document.getElementById('dynamicsChartRequests');
+            if (!el || !reqData.length) return;
+            const stacked = document.getElementById('reqStackToggle')?.checked;
+            if (reqChart) reqChart.destroy();
+            reqChart = new Chart(el, {
+                type: reqChartType,
+                data: { labels: reqData.map(d => d.label), datasets: reqDatasets() },
+                options: {
+                    ...commonOptions,
+                    scales: {
+                        ...commonOptions.scales,
+                        x: { ...commonOptions.scales.x, stacked: !!stacked },
+                        y: { ...commonOptions.scales.y, stacked: !!stacked }
+                    }
+                }
+            });
+        }
+
+        function renderReqShareChart() {
+            const el = document.getElementById('requestsShareChart');
+            if (!el || !reqData.length) return;
+            const sum = reqData.reduce((acc, d) => {
+                acc.new += d.req_new;
+                acc.inProgress += d.req_in_progress;
+                acc.completed += d.req_completed;
+                acc.cancelled += d.req_cancelled;
+                return acc;
+            }, { new: 0, inProgress: 0, completed: 0, cancelled: 0 });
+
+            if (reqShareChart) reqShareChart.destroy();
+            reqShareChart = new Chart(el, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Новые', 'В работе', 'Завершённые', 'Отменённые'],
+                    datasets: [{
+                        data: [sum.new, sum.inProgress, sum.completed, sum.cancelled],
+                        backgroundColor: ['#64748b', '#2563eb', '#16a34a', '#d97706'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    plugins: { legend: { position: 'bottom' } },
+                    cutout: '62%',
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+        }
+
+        function consDatasets() {
+            return [
+                { label: 'Завершённые', data: consData.map(d => d.cons_completed), borderColor: '#16a34a', backgroundColor: 'rgba(22,163,74,.72)', borderWidth: 2, tension: .35, fill: false },
+                { label: 'Отменённые', data: consData.map(d => d.cons_cancelled), borderColor: '#64748b', backgroundColor: 'rgba(100,116,139,.72)', borderWidth: 2, tension: .35, fill: false }
+            ];
+        }
+
+        function renderConsChart() {
+            const el = document.getElementById('dynamicsChartConsultations');
+            if (!el || !consData.length) return;
+            if (consChart) consChart.destroy();
+            consChart = new Chart(el, {
+                type: consChartType,
+                data: { labels: consData.map(d => d.label), datasets: consDatasets() },
+                options: commonOptions
+            });
+        }
+
+        renderReqChart();
+        renderReqShareChart();
+        renderConsChart();
+
+        document.getElementById('reqChartBarBtn')?.addEventListener('click', function () {
+            reqChartType = 'bar';
+            this.classList.add('active');
+            document.getElementById('reqChartLineBtn')?.classList.remove('active');
+            renderReqChart();
+        });
+        document.getElementById('reqChartLineBtn')?.addEventListener('click', function () {
+            reqChartType = 'line';
+            this.classList.add('active');
+            document.getElementById('reqChartBarBtn')?.classList.remove('active');
+            renderReqChart();
+        });
+        document.getElementById('reqStackToggle')?.addEventListener('change', renderReqChart);
+
+        document.getElementById('consChartBarBtn')?.addEventListener('click', function () {
+            consChartType = 'bar';
+            this.classList.add('active');
+            document.getElementById('consChartLineBtn')?.classList.remove('active');
+            renderConsChart();
+        });
+        document.getElementById('consChartLineBtn')?.addEventListener('click', function () {
+            consChartType = 'line';
+            this.classList.add('active');
+            document.getElementById('consChartBarBtn')?.classList.remove('active');
+            renderConsChart();
+        });
+    });
+    </script>
+    {% endif %}
+
+    {% endwith %}
+</div>
+{% endblock %}

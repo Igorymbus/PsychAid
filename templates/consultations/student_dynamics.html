@@ -1,0 +1,191 @@
+{% extends 'base.html' %}
+{% block title %}Динамика учащегося{% endblock %}
+{% block content %}
+<div class="report-page">
+    <section class="report-hero card-soft mb-4">
+        <div class="report-hero__bg"></div>
+        <div class="report-hero__content">
+            <div>
+                <h2 class="report-hero__title"><i class="bi bi-person-lines-fill"></i> Динамика учащегося: {{ student.full_name }}</h2>
+                <p class="report-hero__subtitle">Частота обращений, динамика консультаций и оценка состояния по рабочим данным.</p>
+            </div>
+            <div class="d-flex gap-2 flex-wrap">
+                <a href="{{ back_url }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> К отчётам</a>
+                <a href="{% url 'students:student_detail' student.pk %}" class="btn btn-outline-primary">Профиль учащегося</a>
+            </div>
+        </div>
+    </section>
+
+    <section class="report-panel card-soft mb-4">
+        <div class="report-kpi-grid">
+            <article class="report-kpi-card">
+                <div class="report-kpi-card__icon"><i class="bi bi-chat-dots"></i></div>
+                <div class="report-kpi-card__meta">Обращений</div>
+                <div class="report-kpi-card__value">{{ req_total }}</div>
+            </article>
+            <article class="report-kpi-card">
+                <div class="report-kpi-card__icon"><i class="bi bi-journal-check"></i></div>
+                <div class="report-kpi-card__meta">Консультаций</div>
+                <div class="report-kpi-card__value">{{ cons_total }}</div>
+            </article>
+            <article class="report-kpi-card">
+                <div class="report-kpi-card__icon"><i class="bi bi-check2-circle"></i></div>
+                <div class="report-kpi-card__meta">Завершено (%)</div>
+                <div class="report-kpi-card__value">{{ completion_rate }}</div>
+            </article>
+            <article class="report-kpi-card">
+                <div class="report-kpi-card__icon"><i class="bi bi-graph-up"></i></div>
+                <div class="report-kpi-card__meta">Обращения за 30 дней</div>
+                <div class="report-kpi-card__value">{{ recent_requests }}</div>
+            </article>
+        </div>
+    </section>
+
+    <section class="report-panel card-soft mb-4">
+        <div class="report-panel__head">
+            <div>
+                <h3><i class="bi bi-activity"></i> Оценка динамики</h3>
+                <p>{{ request_trend_text }}</p>
+            </div>
+            <div>
+                {% if dynamics_level == 'Положительная' %}
+                <span class="badge text-bg-success">{{ dynamics_level }}</span>
+                {% elif dynamics_level == 'Зона риска' %}
+                <span class="badge text-bg-danger">{{ dynamics_level }}</span>
+                {% elif dynamics_level == 'Стабильная' %}
+                <span class="badge text-bg-primary">{{ dynamics_level }}</span>
+                {% else %}
+                <span class="badge text-bg-secondary">{{ dynamics_level }}</span>
+                {% endif %}
+            </div>
+        </div>
+        <div class="row g-3">
+            <div class="col-lg-7">
+                <p class="mb-2">{{ dynamics_comment }}</p>
+                <div class="small text-muted">Сигналы прогресса: {{ success_signals }} | Нейтральные сигналы: {{ neutral_signals }} | Сигналы риска: {{ problem_signals }}</div>
+            </div>
+            <div class="col-lg-5">
+                <table class="table table-modern table-sm mb-0">
+                    <tbody>
+                        <tr><th>Новые обращения</th><td>{{ req_status_map.new }}</td></tr>
+                        <tr><th>В работе</th><td>{{ req_status_map.in_progress }}</td></tr>
+                        <tr><th>Завершённые</th><td>{{ req_status_map.completed }}</td></tr>
+                        <tr><th>Отменённые</th><td>{{ req_status_map.cancelled }}</td></tr>
+                        <tr><th>Консультации в плане</th><td>{{ cons_planned }}</td></tr>
+                        <tr><th>Консультации отменены</th><td>{{ cons_cancelled }}</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <section class="report-panel card-soft mb-4">
+        <div class="report-panel__head">
+            <div>
+                <h3><i class="bi bi-bar-chart-line"></i> Помесячная динамика</h3>
+                <p>Сравнение обращений и результатов консультаций по месяцам.</p>
+            </div>
+        </div>
+        <div class="report-chart-wrap"><canvas id="studentDynamicsChart"></canvas></div>
+    </section>
+
+    <section class="report-panel card-soft mb-4">
+        <div class="report-panel__head">
+            <div>
+                <h3><i class="bi bi-calendar2-check"></i> Последние консультации</h3>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-modern table-sm align-middle">
+                <thead>
+                    <tr>
+                        <th>Дата</th>
+                        <th>Время</th>
+                        <th>Форма</th>
+                        <th>Статус</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in recent_consultations %}
+                    <tr>
+                        <td>{{ c.date|date:"d.m.Y" }}</td>
+                        <td>{% if c.time_display %}{{ c.time_display }}{% else %}—{% endif %}</td>
+                        <td>{{ c.form_display }}</td>
+                        <td>
+                            {% if c.completed_at %}
+                            <span class="badge text-bg-success">Завершена</span>
+                            {% elif c.cancelled_at %}
+                            <span class="badge text-bg-warning">Отменена</span>
+                            {% else %}
+                            <span class="badge text-bg-secondary">Запланирована</span>
+                            {% endif %}
+                        </td>
+                        <td><a href="{% url 'consultations:consultation_detail' c.pk %}" class="btn btn-outline-secondary btn-sm">Открыть</a></td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="5" class="text-muted">Нет консультаций за выбранный период.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="report-panel card-soft">
+        <div class="row g-3">
+            <div class="col-lg-6">
+                <h4 class="h6 mb-2"><i class="bi bi-journal-text"></i> Заметки по обращениям</h4>
+                <div class="list-group">
+                    {% for n in request_notes %}
+                    <div class="list-group-item">
+                        <div class="small text-muted mb-1">{{ n.created_at|date:"d.m.Y H:i" }}{% if n.user %} • {{ n.user.username }}{% endif %}</div>
+                        <div>{{ n.text }}</div>
+                    </div>
+                    {% empty %}
+                    <div class="list-group-item text-muted">Нет заметок.</div>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <h4 class="h6 mb-2"><i class="bi bi-card-text"></i> Заметки по консультациям</h4>
+                <div class="list-group">
+                    {% for n in consultation_notes %}
+                    <div class="list-group-item">
+                        <div class="small text-muted mb-1">{{ n.created_at|date:"d.m.Y H:i" }}{% if n.user %} • {{ n.user.username }}{% endif %}</div>
+                        <div>{{ n.text }}</div>
+                    </div>
+                    {% empty %}
+                    <div class="list-group-item text-muted">Нет заметок.</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const data = {{ chart_rows_json|default:'[]'|safe }};
+    const el = document.getElementById('studentDynamicsChart');
+    if (!el || !data.length) return;
+    new Chart(el, {
+        type: 'bar',
+        data: {
+            labels: data.map(x => x.label),
+            datasets: [
+                { label: 'Обращения', data: data.map(x => x.requests), backgroundColor: 'rgba(37,99,235,.72)' },
+                { label: 'Завершённые консультации', data: data.map(x => x.completed), backgroundColor: 'rgba(22,163,74,.72)' },
+                { label: 'Отменённые консультации', data: data.map(x => x.cancelled), backgroundColor: 'rgba(217,119,6,.72)' }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom' } },
+            scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+        }
+    });
+});
+</script>
+{% endblock %}

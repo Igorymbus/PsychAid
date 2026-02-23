@@ -1,0 +1,84 @@
+﻿{% extends 'base.html' %}
+{% load tz %}
+{% block title %}Личный кабинет{% endblock %}
+{% block content %}
+<h2><i class="bi bi-person-circle"></i> Личный кабинет учащегося</h2>
+
+{% if not has_profile %}
+<div class="alert alert-warning">
+    Ваш аккаунт не привязан к карточке учащегося. Обратитесь к администратору для привязки.
+</div>
+{% else %}
+<p class="lead">Здравствуйте{% if student %}, {{ student.full_name }}{% endif %}!</p>
+<p class="text-muted">Здесь вы можете подать обращение к школьному психологу и отслеживать статус своих обращений.</p>
+
+<h5 class="mt-4"><i class="bi bi-bell"></i> Уведомления</h5>
+{% if notifications %}
+<ul class="list-group list-group-flush mb-4">
+    {% for n in notifications %}
+    <li class="list-group-item d-flex justify-content-between align-items-start">
+        <div>
+            {% if n.kind == 'consultation_assigned' %}
+            <span>Вам назначена консультация на {{ n.consultation.date|date:"d.m.Y" }}{% if n.consultation.time_display %} ({{ n.consultation.time_display }}){% endif %}.</span>
+            {% if n.consultation_id %}
+            <a href="{% url 'consultations:my_consultation_list' %}" class="ms-2">Мои консультации →</a>
+            {% endif %}
+            {% else %}
+            <span>Статус обращения изменён{% if n.request %} на «{{ n.request.status_display }}»{% endif %}.</span>
+            {% if n.request_id %}
+            <a href="{% url 'consultations:my_request_detail' n.request_id %}" class="ms-2">Подробнее →</a>
+            {% endif %}
+            {% endif %}
+        </div>
+        <span class="text-muted small">{{ n.created_at|timezone:"Europe/Moscow"|date:"d.m.Y H:i" }}</span>
+    </li>
+    {% endfor %}
+</ul>
+{% else %}
+<p class="text-muted mb-4">Нет новых уведомлений.</p>
+{% endif %}
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title"><i class="bi bi-chat-dots text-primary"></i> Мои обращения</h5>
+                <p class="card-text">Всего обращений: <strong>{{ request_count }}</strong></p>
+                <a href="{% url 'consultations:my_request_list' %}" class="btn btn-outline-primary">Перейти к списку</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title"><i class="bi bi-plus-circle text-success"></i> Подать обращение</h5>
+                <p class="card-text">Записаться на консультацию к психологу.</p>
+                <a href="{% url 'consultations:my_request_create' %}" class="btn btn-success">Подать обращение</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title"><i class="bi bi-person-vcard text-info"></i> Мой профиль</h5>
+                <p class="card-text">Просмотр своих данных (ФИО, класс).</p>
+                <a href="{% url 'students:my_profile' %}" class="btn btn-outline-info">Открыть профиль</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if recent_requests %}
+<h5>Последние обращения</h5>
+<ul class="list-group list-group-flush">
+    {% for r in recent_requests %}
+    <li class="list-group-item d-flex justify-content-between align-items-center">
+        <span>{{ r.created_at|date:"d.m.Y" }} — <span class="badge bg-{% if r.status.name == 'new' %}secondary{% elif r.status.name == 'in_progress' %}info{% elif r.status.name == 'cancelled' %}warning{% else %}success{% endif %}">{{ r.status_display }}</span></span>
+        <a href="{% url 'consultations:my_request_detail' r.pk %}" class="btn btn-sm btn-outline-secondary">Подробнее</a>
+    </li>
+    {% endfor %}
+</ul>
+<p class="mt-2"><a href="{% url 'consultations:my_request_list' %}">Все обращения →</a></p>
+{% endif %}
+{% endif %}
+{% endblock %}

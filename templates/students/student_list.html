@@ -1,0 +1,55 @@
+﻿{% extends 'base.html' %}
+{% block title %}Учащиеся{% endblock %}
+{% block content %}
+<div class="section-header">
+    <div>
+        <h2><i class="bi bi-people"></i> Учащиеся</h2>
+        <div class="subtitle">Список обучающихся и их классов</div>
+    </div>
+    {% if user.is_superuser or user_profile.is_administrator %}
+    <div>
+        <a href="{% url 'students:student_create' %}" class="btn btn-primary">
+            <i class="bi bi-person-plus"></i>
+            Добавить учащегося
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<form class="row g-2 mb-3" method="get">
+    <div class="col-md-4">
+        <input type="text" name="q" class="form-control" placeholder="Поиск по ФИО или классу" value="{{ search_q }}">
+    </div>
+    <div class="col-auto">
+        <button type="submit" class="btn btn-outline-primary">
+            <i class="bi bi-search"></i>
+            Искать
+        </button>
+    </div>
+</form>
+
+<div class="table-responsive">
+    <table class="table table-modern align-middle">
+        <thead>
+            <tr><th>ФИО</th><th>Класс</th><th>Дата рождения</th></tr>
+        </thead>
+        <tbody>
+            {% for s in students %}
+            <tr>
+                <td>
+                    <a href="{% url 'students:student_detail' s.pk %}">
+                        {{ s.full_name }}
+                    </a>
+                </td>
+                <td>{{ s.class_name }}</td>
+                <td>{{ s.birth_date|date:"d.m.Y"|default:"—" }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="3" class="text-muted text-center py-4">Нет учащихся.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% include 'pagination.html' %}
+{% endblock %}

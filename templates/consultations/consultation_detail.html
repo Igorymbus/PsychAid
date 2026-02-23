@@ -1,0 +1,171 @@
+﻿{% extends 'base.html' %}
+{% load tz %}
+{% block title %}Консультация — {{ consultation.date }}{% endblock %}
+{% block content %}
+<h2>Консультация: {{ consultation.students_display }}</h2>
+{% if consultation.completed_at %}<span class="badge bg-success">Завершена</span>
+{% elif consultation.cancelled_at %}<span class="badge bg-secondary">Отменена</span>
+{% elif consultation.date > today %}<span class="badge bg-info">Запланирована</span>{% endif %}
+
+<dl class="row mt-3">
+    <dt class="col-sm-2">Дата</dt><dd class="col-sm-10">{{ consultation.date|date:"d.m.Y" }}</dd>
+    <dt class="col-sm-2">Время</dt><dd class="col-sm-10">{% if consultation.time_display %}{{ consultation.time_display }}{% else %}—{% endif %}</dd>
+
+    <dt class="col-sm-2">Учащиеся</dt>
+    <dd class="col-sm-10">
+        {% for link in consultation.consultation_students.all %}
+            <div>
+                {{ link.student.full_name }}
+                {% if link.participation_cancelled_at %}
+                    <span class="badge bg-secondary">участие отменено</span>
+                {% elif link.participation_confirmed_at %}
+                    <span class="badge bg-success">участие подтверждено</span>
+                {% else %}
+                    <span class="text-muted">участие не подтверждено</span>
+                {% endif %}
+            </div>
+        {% empty %}
+            {{ consultation.students_display }}{% if consultation.request_id %} <span class="text-muted">(по обращению)</span>{% endif %}
+        {% endfor %}
+    </dd>
+
+    <dt class="col-sm-2">Форма</dt><dd class="col-sm-10">{{ consultation.form_display }}</dd>
+    <dt class="col-sm-2">Психолог</dt>
+    <dd class="col-sm-10">
+        {% if assigned_psychologist %}
+            {{ assigned_psychologist.username }}
+        {% else %}
+            <span class="text-muted">— не назначен</span>
+        {% endif %}
+    </dd>
+    <dt class="col-sm-2">Обращение</dt>
+    <dd class="col-sm-10">
+        {% if consultation.request_id %}
+            <a href="{% url 'consultations:request_detail' consultation.request_id %}">{{ consultation.request.created_at|date:"d.m.Y" }}</a>
+        {% else %}
+            —
+        {% endif %}
+    </dd>
+    <dt class="col-sm-2">Результат</dt><dd class="col-sm-10">{{ consultation.result|default:"—"|linebreaks }}</dd>
+</dl>
+
+<h5 class="mt-4">Заметки психолога</h5>
+{% if consultation_notes %}
+<div class="list-group mb-3">
+    {% for note in consultation_notes %}
+    <div class="list-group-item">
+        <div class="small text-muted mb-1">
+            {{ note.created_at|timezone:"Europe/Moscow"|date:"d.m.Y H:i" }}
+            {% if note.user %}• {{ note.user.username }}{% endif %}
+        </div>
+        <div>{{ note.text|linebreaksbr }}</div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<p class="text-muted mb-2">Пока нет заметок по этой консультации.</p>
+{% endif %}
+
+{% if user.role_name == 'psychologist' %}
+<form action="{% url 'consultations:consultation_note_add' consultation.pk %}" method="post" class="mb-4">
+    {% csrf_token %}
+    <div class="mb-2">
+        {{ consultation_note_form.text }}
+        {% if consultation_note_form.text.errors %}
+            <div class="invalid-feedback d-block">{{ consultation_note_form.text.errors|join:", " }}</div>
+        {% endif %}
+    </div>
+    <button type="submit" class="btn btn-outline-primary btn-sm">
+        <i class="bi bi-journal-plus"></i> Добавить заметку
+    </button>
+</form>
+{% endif %}
+
+{% if user.role_name == 'admin' and consultation.request_id %}
+<div class="card card-soft p-3 mb-4">
+    <h6 class="mb-2">Смена психолога (при необходимости)</h6>
+    <p class="text-muted small mb-2">По умолчанию консультацию проводит психолог, который её зарегистрировал. Администратор может заменить его.</p>
+    <form method="post" action="{% url 'consultations:consultation_assign_psychologist' consultation.pk %}" class="row g-2 align-items-end">
+        {% csrf_token %}
+        <div class="col-md-5">
+            <label class="form-label" for="{{ assign_psychologist_form.psychologist.id_for_label }}">{{ assign_psychologist_form.psychologist.label }}</label>
+            {{ assign_psychologist_form.psychologist }}
+            {% for error in assign_psychologist_form.psychologist.errors %}
+            <div class="invalid-feedback d-block">{{ error }}</div>
+            {% endfor %}
+        </div>
+        <div class="col-auto">
+            <button type="submit" class="btn btn-primary">Сохранить</button>
+        </div>
+    </form>
+</div>
+{% endif %}
+
+<h5 class="mt-4">Документы к результату</h5>
+{% if consultation.attachments.all %}
+<ul class="list-group list-group-flush mb-3">
+    {% for att in consultation.attachments.all %}
+    <li class="list-group-item d-flex justify-content-between align-items-center">
+        <div>
+            <a href="{{ MEDIA_URL }}{{ att.file_path }}" target="_blank" rel="noopener"><i class="bi bi-file-earmark-arrow-down"></i> {{ att.filename }}</a>
+            {% if att.description %}<span class="text-muted small ms-2">— {{ att.description }}</span>{% endif %}
+            <span class="text-muted small ms-2">{{ att.uploaded_at|timezone:"Europe/Moscow"|date:"d.m.Y H:i" }}</span>
+        </div>
+        {% if user.role_name == 'psychologist' %}
+        <form action="{% url 'consultations:consultation_attachment_delete' consultation.pk att.pk %}" method="post" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm btn-outline-danger" title="Удалить">Удалить</button>
+        </form>
+        {% endif %}
+    </li>
+    {% endfor %}
+</ul>
+{% else %}
+<p class="text-muted mb-2">Нет прикреплённых документов.</p>
+{% endif %}
+
+{% if user.role_name == 'psychologist' %}
+<form action="{% url 'consultations:consultation_attachment_upload' consultation.pk %}" method="post" enctype="multipart/form-data" class="mb-4">
+    {% csrf_token %}
+    <div class="row g-2 align-items-end">
+        <div class="col-auto">
+            <input type="file" name="file" class="form-control form-control-sm" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.png,.jpg,.jpeg" required>
+        </div>
+        <div class="col-auto">
+            <input type="text" name="description" class="form-control form-control-sm" placeholder="Описание (необязательно)" maxlength="200">
+        </div>
+        <div class="col-auto">
+            <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-upload"></i> Прикрепить документ</button>
+        </div>
+    </div>
+</form>
+{% endif %}
+
+<p>
+    {% if user.role_name == 'psychologist' and not consultation.completed_at and not consultation.cancelled_at %}
+        {% if assigned_psychologist and assigned_psychologist.id == user.id and all_participation_confirmed %}
+        <form action="{% url 'consultations:consultation_complete' consultation.pk %}" method="post" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-success"><i class="bi bi-check-circle"></i> Завершить консультацию</button>
+        </form>
+        {% elif assigned_psychologist and assigned_psychologist.id != user.id %}
+        <span class="btn btn-success disabled" title="Завершить может только закреплённый психолог"><i class="bi bi-check-circle"></i> Завершить консультацию</span>
+        <span class="text-muted ms-2">Эта консультация закреплена за другим психологом.</span>
+        {% elif not assigned_psychologist %}
+        <span class="btn btn-success disabled" title="Не указан психолог консультации"><i class="bi bi-check-circle"></i> Завершить консультацию</span>
+        <span class="text-muted ms-2">Сначала должен быть указан психолог консультации.</span>
+        {% else %}
+        <span class="btn btn-success disabled" title="Сначала все учащиеся должны подтвердить участие"><i class="bi bi-check-circle"></i> Завершить консультацию</span>
+        <span class="text-muted ms-2">Завершение возможно только после подтверждения участия всеми учащимися (раздел «Мои консультации»).</span>
+        {% endif %}
+        <form action="{% url 'consultations:consultation_cancel' consultation.pk %}" method="post" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-warning"><i class="bi bi-x-circle"></i> Отменить консультацию</button>
+        </form>
+    {% endif %}
+
+    {% if consultation.completed_at or consultation.cancelled_at %}
+    <a href="{% url 'consultations:consultation_delete' consultation.pk %}" class="btn btn-outline-danger">Удалить</a>
+    {% endif %}
+</p>
+{% endblock %}

@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block title %}Отменить участие в консультации{% endblock %}
+{% block content %}
+<h2><i class="bi bi-x-circle text-warning"></i> Отменить участие</h2>
+
+<p class="lead">Вы уверены, что хотите отменить участие в консультации?</p>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <p class="mb-1"><strong>Дата:</strong> {{ consultation.date|date:"d.m.Y" }}{% if consultation.start_time %} {{ consultation.start_time|time:"H:i" }}{% if consultation.end_time %} — {{ consultation.end_time|time:"H:i" }}{% endif %}{% endif %}</p>
+        <p class="mb-0"><strong>Форма:</strong> {{ consultation.form_display }}</p>
+    </div>
+</div>
+
+<p class="alert alert-warning mb-4"><strong>Окончательное решение.</strong> После отмены вы не сможете снова подтвердить участие в этой консультации.</p>
+
+<form action="{% url 'consultations:my_consultation_cancel_participation' consultation.pk %}" method="post" class="d-inline">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-warning"><i class="bi bi-x-circle"></i> Да, отменить участие</button>
+</form>
+<a href="{% url 'consultations:my_consultation_list' %}" class="btn btn-outline-secondary">Нет, вернуться к списку</a>
+{% endblock %}

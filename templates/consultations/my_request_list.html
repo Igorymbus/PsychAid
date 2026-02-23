@@ -1,0 +1,43 @@
+﻿{% extends 'base.html' %}
+{% load tz %}
+{% block title %}Мои обращения{% endblock %}
+{% block content %}
+<h2><i class="bi bi-chat-dots"></i> Мои обращения</h2>
+
+{% if not has_profile %}
+<div class="alert alert-warning">
+    Ваш аккаунт не привязан к карточке учащегося. Обратитесь к администратору.
+</div>
+{% else %}
+<p class="text-muted">Список ваших обращений к школьному психологу. Статус «В работе» означает, что психолог принял обращение; «Завершено» — консультации по обращению проведены.</p>
+
+<ul class="nav nav-tabs mb-3">
+    <li class="nav-item">
+        <a class="nav-link active" href="{% url 'consultations:my_request_list' %}"><i class="bi bi-chat-dots"></i> Мои обращения</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" href="{% url 'consultations:my_consultation_list' %}"><i class="bi bi-calendar-check"></i> Мои консультации</a>
+    </li>
+</ul>
+
+<p><a href="{% url 'consultations:my_request_create' %}" class="btn btn-primary"><i class="bi bi-plus-circle"></i> Подать обращение</a></p>
+
+<table class="table table-hover">
+    <thead>
+        <tr><th>Дата</th><th>Статус</th><th>Действия</th></tr>
+    </thead>
+    <tbody>
+        {% for r in requests %}
+        <tr>
+            <td>{{ r.created_at|timezone:"Europe/Moscow"|date:"d.m.Y H:i" }}</td>
+            <td><span class="badge bg-{% if r.status.name == 'new' %}secondary{% elif r.status.name == 'in_progress' %}info{% elif r.status.name == 'cancelled' %}warning{% else %}success{% endif %}">{{ r.status_display }}</span></td>
+            <td><a href="{% url 'consultations:my_request_detail' r.pk %}" class="btn btn-sm btn-outline-primary">Подробнее</a></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="3" class="text-muted">У вас пока нет обращений. Нажмите «Подать обращение», чтобы записаться на консультацию.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% include 'pagination.html' %}
+{% endif %}
+{% endblock %}

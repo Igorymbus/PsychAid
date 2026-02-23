@@ -1,0 +1,43 @@
+﻿{% extends 'base.html' %}
+{% block title %}{{ student.full_name }}{% endblock %}
+{% block content %}
+<h2>{{ student.full_name }}</h2>
+<dl class="row">
+    <dt class="col-sm-2">Класс</dt><dd class="col-sm-10">{{ student.class_name }}</dd>
+    <dt class="col-sm-2">Дата рождения</dt><dd class="col-sm-10">{{ student.birth_date|date:"d.m.Y" }}</dd>
+</dl>
+
+<h5 class="mt-4">Заметки психолога</h5>
+{% if psychologist_notes %}
+<div class="list-group mb-3">
+    {% for n in psychologist_notes %}
+    <div class="list-group-item">
+        <div class="small text-muted mb-1">
+            {{ n.created_at|date:"d.m.Y H:i" }}
+            {% if n.author %} • {{ n.author.username }}{% endif %}
+            {% if n.kind == 'consultation' %}
+                • Консультация
+                {% if n.consultation_id %}<a href="{% url 'consultations:consultation_detail' n.consultation_id %}" class="ms-1">#{{ n.consultation_id }}</a>{% endif %}
+            {% else %}
+                • Обращение
+                {% if n.request_id %}<a href="{% url 'consultations:request_detail' n.request_id %}" class="ms-1">#{{ n.request_id }}</a>{% endif %}
+            {% endif %}
+        </div>
+        <div>{{ n.text|linebreaksbr }}</div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<p class="text-muted">Заметок психолога по этому учащемуся пока нет.</p>
+{% endif %}
+
+<p>
+    {% if user.is_superuser or user.role_name == 'admin' %}
+    <a href="{% url 'students:student_edit' student.pk %}" class="btn btn-primary">Изменить</a>
+    <a href="{% url 'students:student_delete' student.pk %}" class="btn btn-outline-danger">Удалить</a>
+    {% endif %}
+    {% if user.is_superuser or user.role_name == 'admin' %}
+    <a href="{% url 'consultations:request_create' %}?student={{ student.pk }}" class="btn btn-outline-primary">Новое обращение</a>
+    {% endif %}
+</p>
+{% endblock %}

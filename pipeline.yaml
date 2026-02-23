@@ -1,0 +1,41 @@
+name: Django check
+
+on:
+  push:
+    branches: [ master ]
+  # pull request
+
+jobs:
+  validate:
+    name: Validate Django project
+    runs-on: ubuntu-latest
+    steps: 
+      - name: Checkout repository
+        uses: action/checkout@v6
+
+
+      - name: Set up Python
+        uses: action/setup-python@v6
+        with: 
+          python-version: '3.13'
+
+      - name: Create venv and install libs 
+        run: |
+          python3 -m venv .venv
+          source .venv/bin/activate
+          pip install -- upgrade pip
+          pip install -r requirements.txt
+
+      - name: Check Django settings
+        run: |
+          source .venv/bin/activate
+          echo "Проверка настроек Django"
+          python3 manage.py check
+          echo "Настройки валидны"
+
+      - name: Check Django migrations
+        run: |
+          source .venv/bin/activate
+          echo "Проверка миграций Django"
+          python3 manage.py makemigrations -- check -- dry-ru
+          echo "Миграции валидны"

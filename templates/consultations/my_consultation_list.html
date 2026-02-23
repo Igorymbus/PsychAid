@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% block title %}Мои консультации{% endblock %}
+{% block content %}
+<h2><i class="bi bi-calendar-check"></i> Мои консультации</h2>
+
+{% if not has_profile %}
+<div class="alert alert-warning">
+    Ваш аккаунт не привязан к карточке учащегося. Обратитесь к администратору.
+</div>
+{% else %}
+<p class="text-muted">Список ваших консультаций с психологом. Статус «Завершена» означает, что консультация проведена; «Запланирована» — консультация ещё не состоялась.</p>
+
+<ul class="nav nav-tabs mb-3">
+    <li class="nav-item">
+        <a class="nav-link" href="{% url 'consultations:my_request_list' %}"><i class="bi bi-chat-dots"></i> Мои обращения</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link active" href="{% url 'consultations:my_consultation_list' %}"><i class="bi bi-calendar-check"></i> Мои консультации</a>
+    </li>
+</ul>
+
+<table class="table table-hover">
+    <thead>
+        <tr><th>Дата консультации</th><th>Форма</th><th>Статус</th><th>Участие</th></tr>
+    </thead>
+    <tbody>
+        {% for c in consultations %}
+        <tr>
+            <td>{{ c.date|date:"d.m.Y" }}{% if c.start_time %} {{ c.start_time|time:"H:i" }}{% if c.end_time %} — {{ c.end_time|time:"H:i" }}{% endif %}{% endif %}</td>
+            <td>{{ c.form_display }}</td>
+            <td>
+                <span class="badge bg-{% if c.completed_at %}success{% elif c.cancelled_at %}secondary{% else %}info{% endif %}">
+                    {% if c.completed_at %}Завершена{% elif c.cancelled_at %}Отменена{% else %}Запланирована{% endif %}
+                </span>
+            </td>
+            <td>
+                {% if c.my_participation_cancelled_at %}
+                    <span class="badge bg-secondary">Участие отменено</span>
+                {% elif c.my_participation_confirmed_at %}
+                    <span class="badge bg-success"><i class="bi bi-check-circle"></i> Подтверждено</span>
+                    {% if not c.completed_at and not c.cancelled_at %}
+                    <a href="{% url 'consultations:my_consultation_cancel_participation' c.pk %}" class="btn btn-sm btn-outline-warning ms-1">Отменить участие</a>
+                    {% endif %}
+                {% elif not c.completed_at and not c.cancelled_at %}
+                    <form action="{% url 'consultations:my_consultation_confirm' c.pk %}" method="post" class="d-inline">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-outline-primary">Подтвердить участие</button>
+                    </form>
+                    <a href="{% url 'consultations:my_consultation_cancel_participation' c.pk %}" class="btn btn-sm btn-outline-warning ms-2">Отменить участие</a>
+                {% else %}
+                    —
+                {% endif %}
+            </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="4" class="text-muted">У вас пока нет консультаций.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% include 'pagination.html' %}
+{% endif %}
+{% endblock %}

@@ -1,0 +1,39 @@
+﻿{% extends 'base.html' %}
+{% block title %}Подать обращение{% endblock %}
+{% block content %}
+<div class="card card-soft app-form-card">
+    <div class="card-body">
+        <div class="app-form-title">
+            <i class="bi bi-chat-dots"></i>
+            <h2 class="h5 mb-0">Подать обращение к психологу</h2>
+        </div>
+        <p class="text-muted">После отправки обращение появится в списке со статусом «Новое». Психолог примет его в работу и свяжется с вами для согласования консультации.</p>
+
+        <form method="post" novalidate>
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger">
+                {% for err in form.non_field_errors %}
+                    <div>{{ err }}</div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <div class="mb-3">
+                <label for="{{ form.note.id_for_label }}" class="form-label">{{ form.note.label }}</label>
+                {{ form.note }}
+                {% if form.note.help_text %}
+                <div class="form-text">{{ form.note.help_text }}</div>
+                {% endif %}
+                {% for err in form.note.errors %}
+                <div class="text-danger small">{{ err }}</div>
+                {% endfor %}
+            </div>
+
+            <button type="submit" class="btn btn-primary"><i class="bi bi-send"></i> Подать обращение</button>
+            <a href="{% url 'consultations:my_request_list' %}" class="btn btn-outline-secondary">Отмена</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

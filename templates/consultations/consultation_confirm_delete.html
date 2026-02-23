@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+{% block title %}Удаление консультации{% endblock %}
+{% block content %}
+<h2>Удаление консультации</h2>
+<p>Удалить запись о консультации <strong>{{ consultation.request.student.full_name }}</strong> от {{ consultation.date|date:"d.m.Y" }}?</p>
+<form method="post">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-danger">Удалить</button>
+    <a href="{% url 'consultations:consultation_list' %}" class="btn btn-outline-secondary">Отмена</a>
+</form>
+{% endblock %}

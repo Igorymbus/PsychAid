@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% block title %}Журнал консультаций{% endblock %}
+{% block content %}
+<h2><i class="bi bi-journal-text"></i> Журнал консультаций</h2>
+
+<ul class="nav nav-tabs mb-3" role="tablist">
+    <li class="nav-item">
+        <a class="nav-link {% if not tab %}active{% endif %}" href="?{% if search_q %}q={{ search_q }}&{% endif %}{% if date_from %}date_from={{ date_from }}&{% endif %}{% if date_to %}date_to={{ date_to }}&{% endif %}{% if filter_student %}student={{ filter_student }}{% endif %}">Все</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if tab == 'upcoming' %}active{% endif %}" href="?tab=upcoming{% if search_q %}&q={{ search_q }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if filter_student %}&student={{ filter_student }}{% endif %}">Запланированные</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if tab == 'past' %}active{% endif %}" href="?tab=past{% if search_q %}&q={{ search_q }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if filter_student %}&student={{ filter_student }}{% endif %}">Прошедшие</a>
+    </li>
+</ul>
+
+<form class="row g-2 mb-3" method="get">
+    {% if tab %}<input type="hidden" name="tab" value="{{ tab }}">{% endif %}
+    <div class="col-auto"><input type="text" name="q" class="form-control" placeholder="Поиск (ФИО, результат)" value="{{ search_q }}"></div>
+    <div class="col-auto"><input type="date" name="date_from" class="form-control" value="{{ date_from }}"></div>
+    <div class="col-auto"><input type="date" name="date_to" class="form-control" value="{{ date_to }}"></div>
+    <div class="col-auto"><select name="student" class="form-select"><option value="">Все учащиеся</option>{% for s in students %}<option value="{{ s.pk }}" {% if filter_student_id == s.pk %}selected{% endif %}>{{ s.full_name }}</option>{% endfor %}</select></div>
+    <div class="col-auto"><button type="submit" class="btn btn-outline-primary">Фильтр</button></div>
+</form>
+
+<table class="table table-hover">
+    <thead>
+        <tr><th>Дата</th><th>Время начала — окончания</th><th>Учащиеся</th><th>Форма</th><th>Обращение</th><th>Действия</th></tr>
+    </thead>
+    <tbody>
+        {% for c in consultations %}
+        <tr>
+            <td>{{ c.date|date:"d.m.Y" }}{% if c.completed_at %} <span class="badge bg-success">Завершена</span>{% elif c.cancelled_at %} <span class="badge bg-secondary">Отменена</span>{% elif c.date > today %} <span class="badge bg-info">План</span>{% endif %}</td>
+            <td>{% if c.time_display %}{{ c.time_display }}{% else %}—{% endif %}</td>
+            <td>{{ c.students_display }}</td>
+            <td>{{ c.form_display }}</td>
+            <td>{% if c.request_id %}<a href="{% url 'consultations:request_detail' c.request_id %}">{{ c.request.created_at|date:"d.m.Y" }}</a>{% else %}<span class="text-muted">Планирование</span>{% endif %}</td>
+            <td>
+                <a href="{% url 'consultations:consultation_detail' c.pk %}" class="btn btn-sm btn-outline-secondary">Открыть</a>
+                {% if c.completed_at or c.cancelled_at %}
+                <a href="{% url 'consultations:consultation_delete' c.pk %}" class="btn btn-sm btn-outline-danger">Удалить</a>
+                {% endif %}
+            </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" class="text-muted">Нет записей.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% include 'pagination.html' %}
+{% endblock %}
