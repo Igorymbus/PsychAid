@@ -505,3 +505,4 @@ python manage.py runserver
 ```
 
 Для PostgreSQL настройте переменные окружения `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_HOST`, `POSTGRES_PORT`.
+# PsychAid
